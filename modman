@@ -1,0 +1,4 @@
+app/code/community/Mygento/Progressive app/code/community/Mygento/Progressive
+app/etc/modules/Mygento_Progressive.xml app/etc/modules/Mygento_Progressive.xml
+app/locale/ru_RU/Mygento_Progressive.csv app/locale/ru_RU/Mygento_Progressive.csv
+app/code/community/Varien/Image/Adapter.php app/code/community/Varien/Image/Adapter.php
