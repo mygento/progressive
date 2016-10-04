@@ -14,6 +14,14 @@ class Mygento_Progressive_Model_Progressive extends Varien_Image_Adapter_Gd2
     */
     protected $_resized = false;
 
+    protected static $_callbacks = array(
+        IMAGETYPE_GIF  => array('output' => 'imagegif',  'create' => 'imagecreatefromgif'),
+        IMAGETYPE_JPEG => array('output' => 'imagejpeg', 'create' => 'imagecreatefromjpeg'),
+        IMAGETYPE_PNG  => array('output' => 'imagepng',  'create' => 'imagecreatefrompng'),
+        IMAGETYPE_XBM  => array('output' => 'imagexbm',  'create' => 'imagecreatefromxbm'),
+        IMAGETYPE_WBMP => array('output' => 'imagewbmp', 'create' => 'imagecreatefromxbm'),
+    );
+
 
     /**
      * Change the image size
@@ -29,7 +37,7 @@ class Mygento_Progressive_Model_Progressive extends Varien_Image_Adapter_Gd2
 
     public function save($destination=null, $newName=null)
     {
-        if(!Mage::getStoreFlag('progressive/general/enabled')) {
+        if(!Mage::getStoreConfigFlag('progressive/general/enabled')) {
           return parent::save($destination, $newName);
         }
         $fileName = ( !isset($destination) ) ? $this->_fileName : $destination;
@@ -103,5 +111,51 @@ class Mygento_Progressive_Model_Progressive extends Varien_Image_Adapter_Gd2
             $functionParameters[] = $quality;
         }
         call_user_func_array($this->_getCallback('output'), $functionParameters);
+    }
+
+    /**
+     * Obtain function name, basing on image type and callback type
+     *
+     * @param string $callbackType
+     * @param int $fileType
+     * @return string
+     * @throws Exception
+     */
+    protected function _getCallback($callbackType, $fileType = null, $unsupportedText = 'Unsupported image format.')
+    {
+        if (null === $fileType) {
+            $fileType = $this->_fileType;
+        }
+        if (empty(self::$_callbacks[$fileType])) {
+            throw new Exception($unsupportedText);
+        }
+        if (empty(self::$_callbacks[$fileType][$callbackType])) {
+            throw new Exception('Callback not found.');
+        }
+        return self::$_callbacks[$fileType][$callbackType];
+    }
+
+    protected function _getTransparency($imageResource, $fileType, &$isAlpha = false, &$isTrueColor = false)
+    {
+        $isAlpha     = false;
+        $isTrueColor = false;
+        // assume that transparency is supported by gif/png only
+        if ((IMAGETYPE_GIF === $fileType) || (IMAGETYPE_PNG === $fileType)) {
+            // check for specific transparent color
+            $transparentIndex = imagecolortransparent($imageResource);
+            if ($transparentIndex >= 0) {
+                return $transparentIndex;
+            }
+            // assume that truecolor PNG has transparency
+            elseif (IMAGETYPE_PNG === $fileType) {
+                $isAlpha     = $this->checkAlpha($this->_fileName);
+                $isTrueColor = true;
+                return $transparentIndex; // -1
+            }
+        }
+        if (IMAGETYPE_JPEG === $fileType) {
+            $isTrueColor = true;
+        }
+        return false;
     }
 }
